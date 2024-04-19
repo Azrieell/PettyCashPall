@@ -5,6 +5,7 @@ const categories = {
   state: {
     incomesCategories: [],
     expensesCategories: [],
+    selectedCategories: []
   },
   getters: {
     getIncomesCategories: (state) => state.incomesCategories,
@@ -73,7 +74,7 @@ const categories = {
             Authorization: `Bearer ${token}`,
           },
         });
-        commit("ADD_CATEGORY_EXPENSES", response.data);
+        commit("ADD_CATEGORY_EXPENSE", response.data);
         return response.data;
       } catch (error) {
         console.error("Error creating expense category:", error.response.data.msg);

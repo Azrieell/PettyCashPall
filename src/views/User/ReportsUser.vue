@@ -176,54 +176,6 @@
           </div>
           <!-- Akhir Modals ADD expenses -->
         </div>
-        <h1 class="text-2xl font-bold mb-8 font-montserrat mt-10">Reports</h1>
-        <div class="flex flex-col justify-center relative overflow-hidden sm:py-12">
-          <div class="max-w-7xl mx-auto">
-            <div class="relative group">
-              <div
-                class="absolute -inset-1 bg-gradient-to-r to-pink-600 rounded-lg blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200">
-              </div>
-              <div
-                class="relative px-7 py-6 bg-white ring-1 ring-gray-900/55 rounded-lg leading-none flex flex-col items-center justify-start space-y-4">
-                <p class="text-slate-800">Format</p>
-                <div class="flex items-center space-x-4">
-                  <button type="button"
-                    class="text-gray-900 hover:text-white border border-gray-800 hover:bg-gray-900 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 dark:border-gray-600 dark:text-black dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-800">EXCEL</button>
-                  <span><button type="button"
-                      class="text-gray-900 hover:text-white border border-gray-800 hover:bg-gray-900 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 dark:border-gray-600 dark:text-black dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-800">PDF</button></span>
-                </div>
-                <hr class="border-gray-300 w-full my-4">
-                <p>Include</p>
-                <div class="flex justify-center -pl-0 sm:pl-20">
-                  <div class="flex-initial sm:w-64">
-                    <div class="flex items-center mb-4">
-                      <input id="default-checkbox-1" type="checkbox" value="expenses" name="default-checkbox"
-                        class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                      <label for="default-checkbox-1"
-                        class="ms-2 text-sm font-medium text-gray-900 dark:text-black">Expenses</label>
-                    </div>
-                  </div>
-                  <div class="flex-initial sm:w-72">
-                    <div class="flex items-center">
-                      <input id="default-checkbox-2" type="checkbox" value="incomes" name="default-checkbox"
-                        class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                      <label for="default-checkbox-2"
-                        class="ms-2 text-sm font-medium text-gray-900 dark:text-black">Incomes</label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="flex justify-center mt-5">
-                <button
-                  class="bg-blue-500 hover:bg-gray-400 text-white font-bold py-2 px-4 rounded inline-flex items-center">
-                  <svg class="fill-current w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                    <path d="M13 8V2H7v6H2l8 8 8-8h-5zM0 18h20v2H0v-2z" /></svg>
-                  <span>GENERATE</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -231,11 +183,15 @@
 
 
 <script>
+  import * as XLSX from 'xlsx';
+
   import Swal from 'sweetalert2';
   import {
     mapActions,
     mapGetters
   } from 'vuex';
+
+
 
   export default {
     data() {
@@ -250,11 +206,12 @@
     },
 
     computed: {
-      ...mapGetters('categories', ['getIncomesCategories', 'getExpensesCategories'])
+      ...mapGetters('categories', ['getIncomesCategories', 'getExpensesCategories']),
     },
 
     methods: {
       ...mapActions('categories', ['fetchCategories', 'createIncomeCategory', 'createExpensesCategory']),
+      ...mapActions('incomes', ['fetchIncomes']),
       async submitCategories() {
         try {
           if (this.categoryData.income_category) {
@@ -268,12 +225,10 @@
               this.closeCategoryExpensesModal(); // Ubah ini untuk menutup modal kategori pengeluaran (expenses)
             });
           }
-
           this.categoryData = {
             income_category: '',
             expenditure_category: ''
           };
-
           this.fetchCategories();
         } catch (error) {
           Swal.fire({
@@ -295,10 +250,40 @@
       closeCategoryExpensesModal() {
         this.isCategoryExpensesModalOpen = false;
       },
+
+      async generateExcel() {
+        try {
+          // Ambil data pendapatan dari store
+          const incomes = this.$store.getters['incomes/getIncomes'];
+
+          // Inisialisasi variabel untuk menyimpan data Excel
+          const wb = XLSX.utils.book_new();
+          const ws = XLSX.utils.json_to_sheet(incomes);
+
+          // Tambahkan sheet ke workbook
+          XLSX.utils.book_append_sheet(wb, ws, 'Incomes');
+
+          // Simpan file Excel
+          XLSX.writeFile(wb, 'income_data.xlsx');
+
+          // Tampilkan pesan sukses kepada pengguna
+          Swal.fire('Success!', 'Income data has been successfully exported to Excel', 'success');
+        } catch (error) {
+          // Tangani kesalahan jika terjadi
+          console.error('Error exporting income data to Excel:', error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'An error occurred while exporting income data to Excel!'
+          });
+        }
+      }
+
     },
 
     mounted() {
       this.fetchCategories();
+      this.fetchIncomes();
     }
   }
 </script>

@@ -11,7 +11,9 @@ const expenses = {
   },
 
   actions: {
-    async fetchExpenses({ commit }) {
+    async fetchExpenses({
+      commit
+    }) {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get("/expenditure", {
@@ -27,23 +29,26 @@ const expenses = {
       }
     },
 
-    async fetchExpensesByUserId({ commit }, id) {
+    async fetchExpensesById({
+      commit
+    }, id) {
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get(`/expenditure/${id}`, {
+        const response = await axios.get(`/expenditure/user/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        commit("SET_EXPENSES", [response.data]);
         return response.data;
       } catch (error) {
-        console.error("Error fetching expenses by user ID:", error.response.data.msg);
+        console.error("Error fetching expenses by ID:", error.response.data.msg);
         throw error;
       }
     },
 
-    async createExpenses({ commit }, formKey) {
+    async createExpenses({
+      commit
+    }, formKey) {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.post("/expenditure/add", formKey, {
@@ -58,6 +63,48 @@ const expenses = {
         throw error;
       }
     },
+
+    async updateExpenses({
+      commit
+    }, {
+      id,
+      formKey
+    }) {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.patch(`/expenditure/edit/${id}`, formKey, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        // Perbarui data di store setelah update berhasil
+        commit("UPDATE_EXPENSES", response.data);
+        return response.data;
+      } catch (error) {
+        console.error("Error updating expenses:", error.response.data.msg);
+        throw error;
+      }
+    },
+
+    async deleteExpenses({
+      commit
+    },  {
+      id
+    }) {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.delete(`/expenditure/delete/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        return response.data;
+      } catch (error) {
+        console.error("Error deleting expenses:", error.response.data.msg);
+        throw error;
+      }
+    }
+
   },
 
   mutations: {
@@ -67,6 +114,12 @@ const expenses = {
     ADD_EXPENSES(state, expenses) {
       state.expenses.push(expenses);
     },
+    UPDATE_EXPENSES(state, updatedExpenses) {
+      const index = state.expenses.findIndex(expense => expense.id === updatedExpenses.id);
+      if (index !== -1) {
+        state.expenses.splice(index, 1, updatedExpenses);
+      }
+    }
   },
 };
 

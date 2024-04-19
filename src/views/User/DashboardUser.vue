@@ -1,4 +1,5 @@
 <template>
+  
   <div class="flex justify-center">
     <div class="p-8 w-full md:w-auto">
       <div class="container mx-auto">
@@ -16,7 +17,7 @@
               <div>
                 <div class="font-bold text-sm text-white mb-1 ml-4" style="font-family: 'Montserrat', sans-serif;">
                   Overall</div>
-                <p class="text-white text-xl ml-4">Rp. 100.000</p>
+                <p class="text-white text-xl ml-4">Rp. {{ calculateOverall.toLocaleString('id-ID') }}</p>
               </div>
             </div>
           </div>
@@ -31,7 +32,7 @@
               <div>
                 <div class="font-bold text-sm text-black mb-1 ml-4" style="font-family: 'Montserrat', sans-serif;">
                   Income</div>
-                <p class="text-black text-xl ml-4">Rp. 1.000.000</p>
+                <p class="text-black text-xl ml-4">Rp. {{ calculateTotalIncome.toLocaleString('id-ID') }}</p>
               </div>
             </div>
           </div>
@@ -46,7 +47,7 @@
               <div>
                 <div class="font-bold text-sm text-black mb-1 ml-4" style="font-family: 'Montserrat', sans-serif;">
                   Expenses</div>
-                <p class="text-black text-xl ml-4">Rp. 900.000</p>
+                <p class="text-black text-xl ml-4">Rp. {{ calculateTotalExpenses.toLocaleString('id-ID') }}</p>
               </div>
             </div>
           </div>
@@ -186,40 +187,40 @@
                     <tr>
                       <th
                         class="px-6 bg-blueGray-50 text-blueGray-500 align-middle border border-solid border-blueGray-100 py-3 text-xs uppercase border-l-0 border-r-0 whitespace-nowrap font-semibold text-left">
-                        Name
+                        CATEGORY
                       </th>
                       <th
                         class="px-6 bg-blueGray-50 text-blueGray-500 align-middle border border-solid border-blueGray-100 py-3 text-xs uppercase border-l-0 border-r-0 whitespace-nowrap font-semibold text-left">
-                        Description
+                        DESCRIPION
                       </th>
                       <th
                         class="px-6 bg-blueGray-50 text-blueGray-500 align-middle border border-solid border-blueGray-100 py-3 text-xs uppercase border-l-0 border-r-0 whitespace-nowrap font-semibold text-left">
-                        Amount
+                        DATE
                       </th>
                       <th
                         class="px-6 bg-blueGray-50 text-blueGray-500 align-middle border border-solid border-blueGray-100 py-3 text-xs uppercase border-l-0 border-r-0 whitespace-nowrap font-semibold text-left">
-                        Date
+                        OVERAL
                       </th>
                     </tr>
                   </thead>
 
                   <tbody>
-                    <tr>
-                      <th
-                        class="border-t-0 px-6 align-middle border-l-0 border-r-0 text-xs whitespace-nowrap p-4 text-left text-blueGray-700 ">
-                        Salary
-                      </th>
+                    <tr v-for="(entry, index) in latestEntries" :key="index">
+                      <td
+                        class="border-t-0 px-6 align-middle border-l-0 border-r-0 text-xs whitespace-nowrap p-4 text-left text-blueGray-700">
+                        {{ entry.category }}
+                      </td>
+                      <td
+                        class="border-t-0 px-6 align-middle border-l-0 border-r-0 text-xs whitespace-nowrap p-4 text-left text-blueGray-700">
+                        {{ entry.description }}
+                      </td>
                       <td class="border-t-0 px-6 align-middle border-l-0 border-r-0 text-xs whitespace-nowrap p-4 ">
-                        Dari Gaji
+                        {{ entry.date }}
                       </td>
                       <td class="border-t-0 px-6 align-center border-l-0 border-r-0 text-xs whitespace-nowrap p-4">
-                        Rp. 900.000
-                      </td>
-                      <td class="border-t-0 px-6 align-center border-l-0 border-r-0 text-xs whitespace-nowrap p-4">
-                        2020-12-12
+                        Rp. {{ entry.amount.toLocaleString('id-ID') }}
                       </td>
                     </tr>
-                    
                   </tbody>
 
                 </table>
@@ -234,17 +235,87 @@
 </template>
 
 <script>
+  import {
+    mapActions,
+    mapGetters
+  } from 'vuex';
+
   export default {
     data() {
       return {
-        isCollapsed: false
+        isCollapsed: false,
+        latestEntries: []
       };
     },
+
+    computed: {
+      ...mapGetters('incomes', ['getIncomes']),
+      ...mapGetters('expenses', ['getExpenses']),
+
+      calculateTotalIncome() {
+        return this.getIncomes.reduce((total, income) => total + income.total_income, 0);
+      },
+      calculateTotalExpenses() {
+        return this.getExpenses.reduce((total, expenses) => total + expenses.total_expenditure, 0);
+      },
+      calculateOverall() {
+        const totalIncome = this.calculateTotalIncome;
+        const totalExpenses = this.calculateTotalExpenses;
+        return totalIncome - totalExpenses;
+      },
+    },
+
     methods: {
+      ...mapActions('incomes', ['fetchIncomes']),
+      ...mapActions('expenses', ['fetchExpenses']),
+      ...mapActions('article', ['fetchArticle']),
+
       toggleMenu() {
         this.isCollapsed = !this.isCollapsed;
+      },
+
+      async fetchLatestEntries() {
+        try {
+          // Mengambil data terbaru dari API atau sumber data
+          const incomes = await this.fetchIncomes();
+          const expenses = await this.fetchExpenses();
+
+          // Menggabungkan pendapatan dan pengeluaran menjadi satu array
+          const entries = [
+            ...incomes.map(income => ({
+              type: 'Income',
+              date: income.date_of_entry,
+              description: income.description_of_entry,
+              category: income.category,
+              amount: income.total_income
+            })),
+            ...expenses.map(expense => ({
+              type: 'Expense',
+              date: expense.date_expenditure,
+              description: expense.description_expenditure,
+              category: expense.category,
+              amount: expense.total_expenditure,
+            }))
+          ];
+
+          // Mengurutkan array yang digabungkan berdasarkan tanggal secara menurun
+          entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+          // Mendapatkan 5 entri terbaru
+          this.latestEntries = entries.slice(0, 5);
+        } catch (error) {
+          console.error("Error fetching latest entries:", error.response.data.msg);
+          throw error;
+        }
       }
-    }
+
+
+    },
+
+    mounted() {
+      this.fetchLatestEntries();
+    },
+
   };
 </script>
 
